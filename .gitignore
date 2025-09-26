@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+
+# Expo / React Native
+.expo
+.expo-shared
+android/
+ios/
+web-build/
+
+# Build outputs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Metro / cache
+.expo
+.pnpm-store
+.expo-cache
+.expo-packager
+
+# macOS
+.DS_Store
+
+# Env files
+.env*
