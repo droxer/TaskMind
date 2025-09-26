@@ -1,13 +1,26 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import { t, type TranslationKey } from '@/i18n';
+import { useActiveLocale } from '@/state/useTaskStore';
+
+const TAB_LABEL_KEYS: Record<string, TranslationKey> = {
+  index: 'tabs.home',
+  goals: 'tabs.goals',
+  calendar: 'tabs.calendar',
+  settings: 'tabs.settings'
+};
+
 export default function TabsLayout() {
+  useActiveLocale();
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: '#F8FAFF' }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: '#4F46E5',
         tabBarInactiveTintColor: '#94A3B8',
+        tabBarAccessibilityLabel: t(TAB_LABEL_KEYS[route.name] ?? 'tabs.home'),
         tabBarIcon: ({ color, size }) => {
           switch (route.name) {
             case 'index':
@@ -24,10 +37,10 @@ export default function TabsLayout() {
         }
       })}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home' }} />
-      <Tabs.Screen name="goals" options={{ title: 'Goals' }} />
-      <Tabs.Screen name="calendar" options={{ title: 'Calendar' }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
+      <Tabs.Screen name="index" options={{ title: t('tabs.home') }} />
+      <Tabs.Screen name="goals" options={{ title: t('tabs.goals') }} />
+      <Tabs.Screen name="calendar" options={{ title: t('tabs.calendar') }} />
+      <Tabs.Screen name="settings" options={{ title: t('tabs.settings') }} />
     </Tabs>
   );
 }

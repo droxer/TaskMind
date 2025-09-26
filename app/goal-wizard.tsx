@@ -4,10 +4,11 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 
-import { Priority } from '@/types';
+import { Priority, type GenAiTaskSuggestion } from '@/types';
 import { requestGoalBreakdown } from '@/services/genAiService';
-import { usePreferences, useTaskStore } from '@/state/useTaskStore';
+import { usePreferences, useTaskStore, useActiveLocale } from '@/state/useTaskStore';
 import { formatDate } from '@/utils/date';
+import { t, priorityLabel } from '@/i18n';
 
 interface TaskDraft {
   title: string;
@@ -17,10 +18,13 @@ interface TaskDraft {
   aiSuggested: boolean;
 }
 
+type GoalBreakdownInput = Parameters<typeof requestGoalBreakdown>[0];
+
 export default function GoalWizardScreen() {
   const router = useRouter();
   const createGoal = useTaskStore((state) => state.createGoal);
   const preferences = usePreferences();
+  const locale = useActiveLocale();
 
   const [goalTitle, setGoalTitle] = useState('');
   const [goalDescription, setGoalDescription] = useState('');
@@ -33,11 +37,11 @@ export default function GoalWizardScreen() {
   const [activeTaskPicker, setActiveTaskPicker] = useState<number | null>(null);
 
   const mutation = useMutation({
-    mutationFn: requestGoalBreakdown,
+    mutationFn: (input: GoalBreakdownInput) => requestGoalBreakdown(input),
     onSuccess: (response) => {
       setSummary(response.summary);
       const baseDate = targetDate ? new Date(targetDate) : new Date();
-      const generatedTasks: TaskDraft[] = response.tasks.map((task) => {
+      const generatedTasks: TaskDraft[] = response.tasks.map((task: GenAiTaskSuggestion) => {
         const dueDate = new Date(baseDate);
         if (typeof task.dueInDays === 'number') {
           const offset = Math.max(0, task.dueInDays);
@@ -59,11 +63,14 @@ export default function GoalWizardScreen() {
 
   const handleGenerate = async () => {
     if (!preferences.genAiEnabled) {
-      Alert.alert('GenAI disabled', 'Enable GenAI in settings to auto-generate task plans.');
+      Alert.alert(
+        t('goalWizard.alert.genAiDisabled.title'),
+        t('goalWizard.alert.genAiDisabled.message')
+      );
       return;
     }
     if (!goalTitle.trim()) {
-      Alert.alert('Add goal title', 'Describe the goal to generate a plan.');
+      Alert.alert(t('goalWizard.alert.addTitle.title'), t('goalWizard.alert.addTitle.message'));
       return;
     }
     await mutation.mutateAsync({ goal: goalTitle, targetDate, context });
@@ -80,20 +87,24 @@ export default function GoalWizardScreen() {
     setActiveTaskPicker(Platform.OS === 'ios' ? index : null);
     if (picked) {
       setTaskDrafts((current) =>
-        current.map((task, idx) => (idx === index ? { ...task, dueDate: picked.toISOString() } : task))
+        current.map((task: TaskDraft, idx) =>
+          idx === index ? { ...task, dueDate: picked.toISOString() } : task
+        )
       );
     }
   };
 
   const handleUpdateTask = (index: number, updates: Partial<TaskDraft>) => {
-    setTaskDrafts((current) => current.map((task, idx) => (idx === index ? { ...task, ...updates } : task)));
+    setTaskDrafts((current) =>
+      current.map((task: TaskDraft, idx) => (idx === index ? { ...task, ...updates } : task))
+    );
   };
 
   const handleAddManualTask = () => {
     setTaskDrafts((current) => [
       ...current,
       {
-        title: 'New task',
+        title: t('goalWizard.newTaskTitle'),
         notes: '',
         priority: 'medium',
         dueDate: targetDate,
@@ -104,13 +115,19 @@ export default function GoalWizardScreen() {
 
   const handleSaveGoal = () => {
     if (!goalTitle.trim()) {
-      Alert.alert('Missing title', 'Please add a goal title.');
+      Alert.alert(
+        t('goalWizard.alert.missingTitle.title'),
+        t('goalWizard.alert.missingTitle.message')
+      );
       return;
     }
 
     const trimmedTasks = taskDrafts.filter((task) => task.title.trim().length > 0);
     if (trimmedTasks.length === 0) {
-      Alert.alert('No tasks yet', 'Add or keep at least one task before saving the plan.');
+      Alert.alert(
+        t('goalWizard.alert.emptyTasks.title'),
+        t('goalWizard.alert.emptyTasks.message')
+      );
       return;
     }
 
@@ -134,31 +151,39 @@ export default function GoalWizardScreen() {
   };
 
   const manualOnly = useMemo(() => !preferences.genAiEnabled, [preferences.genAiEnabled]);
+  const generateLabel = manualOnly
+    ? t('goalWizard.generate.manualOnly')
+    : mutation.isPending
+      ? t('goalWizard.generate.loading')
+      : t('goalWizard.generate.idle');
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Goal wizard</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      accessibilityLanguage={locale}
+    >
+      <Text style={styles.heading}>{t('goalWizard.title')}</Text>
       <Text style={styles.subtitle}>
-        {manualOnly
-          ? 'GenAI is disabled. Re-enable in settings or continue with manual planning.'
-          : 'Describe your goal and receive a breakdown you can tweak before saving.'}
+        {manualOnly ? t('goalWizard.subtitle.manual') : t('goalWizard.subtitle.default')}
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Goal</Text>
+        <Text style={styles.label}>{t('goalWizard.goalLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Launch a new marketing campaign"
+          placeholder={t('goalWizard.goalPlaceholder')}
           value={goalTitle}
           onChangeText={setGoalTitle}
         />
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Details</Text>
+        <Text style={styles.label}>{t('goalWizard.detailsLabel')}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="What does success look like?"
+          placeholder={t('goalWizard.detailsPlaceholder')}
           value={goalDescription}
           onChangeText={setGoalDescription}
           multiline
@@ -167,10 +192,10 @@ export default function GoalWizardScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Target date</Text>
+        <Text style={styles.label}>{t('goalWizard.targetLabel')}</Text>
         <Pressable style={styles.datePicker} onPress={() => setShowTargetPicker(true)}>
-          <Text style={styles.dateText}>{formatDate(targetDate)}</Text>
-          <Text style={styles.dateAction}>Pick</Text>
+          <Text style={styles.dateText}>{formatDate(targetDate, locale)}</Text>
+          <Text style={styles.dateAction}>{t('common.pick')}</Text>
         </Pressable>
         {showTargetPicker ? (
           <DateTimePicker
@@ -182,10 +207,10 @@ export default function GoalWizardScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Additional context (optional)</Text>
+        <Text style={styles.label}>{t('goalWizard.contextLabel')}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="Who is involved? Budget limits, tools, constraints..."
+          placeholder={t('goalWizard.contextPlaceholder')}
           value={context}
           onChangeText={setContext}
           multiline
@@ -197,18 +222,16 @@ export default function GoalWizardScreen() {
         onPress={handleGenerate}
         disabled={isGenerateDisabled || mutation.isPending}
       >
-        <Text style={styles.generateLabel}>
-          {manualOnly ? 'Add tasks manually' : mutation.isPending ? 'Generating…' : 'Generate breakdown'}
-        </Text>
+        <Text style={styles.generateLabel}>{generateLabel}</Text>
       </Pressable>
 
       <Pressable style={styles.manualButton} onPress={handleAddManualTask}>
-        <Text style={styles.manualLabel}>+ Add manual task</Text>
+        <Text style={styles.manualLabel}>{t('goalWizard.manualAdd')}</Text>
       </Pressable>
 
       {summary ? (
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>AI summary</Text>
+          <Text style={styles.summaryTitle}>{t('goalWizard.summaryTitle')}</Text>
           <Text style={styles.summaryText}>{summary}</Text>
         </View>
       ) : null}
@@ -216,8 +239,10 @@ export default function GoalWizardScreen() {
       {taskDrafts.map((task, index) => (
         <View key={`task-${index}`} style={styles.taskCard}>
           <View style={styles.taskTitleRow}>
-            <Text style={styles.label}>Task {index + 1}</Text>
-            <Text style={styles.aiBadge}>{task.aiSuggested ? 'AI suggested' : 'Manual'}</Text>
+            <Text style={styles.label}>{t('goalWizard.taskLabel', { index: index + 1 })}</Text>
+            <Text style={styles.aiBadge}>
+              {task.aiSuggested ? t('goalWizard.taskBadge.ai') : t('goalWizard.taskBadge.manual')}
+            </Text>
           </View>
           <TextInput
             style={styles.input}
@@ -226,7 +251,7 @@ export default function GoalWizardScreen() {
           />
           <TextInput
             style={[styles.input, styles.multiline]}
-            placeholder="Add notes"
+            placeholder={t('goalWizard.taskNotesPlaceholder')}
             value={task.notes}
             onChangeText={(value) => handleUpdateTask(index, { notes: value })}
             multiline
@@ -241,7 +266,7 @@ export default function GoalWizardScreen() {
                   onPress={() => handleUpdateTask(index, { priority: option })}
                 >
                   <Text style={[styles.priorityText, isActive && styles.priorityTextActive]}>
-                    {option}
+                    {priorityLabel(option)}
                   </Text>
                 </Pressable>
               );
@@ -251,8 +276,8 @@ export default function GoalWizardScreen() {
             style={styles.datePicker}
             onPress={() => setActiveTaskPicker(index)}
           >
-            <Text style={styles.dateText}>{formatDate(task.dueDate)}</Text>
-            <Text style={styles.dateAction}>Adjust</Text>
+            <Text style={styles.dateText}>{formatDate(task.dueDate, locale)}</Text>
+            <Text style={styles.dateAction}>{t('common.adjust')}</Text>
           </Pressable>
           {activeTaskPicker === index ? (
             <DateTimePicker
@@ -265,7 +290,7 @@ export default function GoalWizardScreen() {
       ))}
 
       <Pressable style={styles.saveButton} onPress={handleSaveGoal}>
-        <Text style={styles.saveLabel}>Save plan</Text>
+        <Text style={styles.saveLabel}>{t('goalWizard.save')}</Text>
       </Pressable>
     </ScrollView>
   );

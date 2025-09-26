@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PriorityPill } from '@/components/PriorityPill';
 import { Task } from '@/types';
 import { daysUntil, formatDate } from '@/utils/date';
+import { t } from '@/i18n';
+import { useActiveLocale } from '@/state/useTaskStore';
 
 interface Props {
   task: Task;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 function TaskCardComponent({ task, onPress, onToggleStatus }: Props) {
+  const locale = useActiveLocale();
   const dueIn = daysUntil(task.dueDate);
   const dueColor = dueIn !== null && dueIn < 0 ? styles.overdue : undefined;
 
@@ -29,12 +32,12 @@ function TaskCardComponent({ task, onPress, onToggleStatus }: Props) {
           onPress={() => onToggleStatus?.(task)}
         >
           <Text style={styles.statusText}>
-            {task.status === 'done' ? 'Mark Incomplete' : 'Complete'}
+            {task.status === 'done' ? t('taskCard.markIncomplete') : t('taskCard.complete')}
           </Text>
         </Pressable>
-        <Text style={[styles.dueText, dueColor]}>{formatDate(task.dueDate)}</Text>
+        <Text style={[styles.dueText, dueColor]}>{formatDate(task.dueDate, locale)}</Text>
       </View>
-      {task.aiSuggested ? <Text style={styles.aiTag}>AI suggested</Text> : null}
+      {task.aiSuggested ? <Text style={styles.aiTag}>{t('taskCard.aiSuggested')}</Text> : null}
     </Pressable>
   );
 }

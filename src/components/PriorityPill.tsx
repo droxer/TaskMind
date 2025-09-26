@@ -1,17 +1,13 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Priority } from '@/types';
+import { priorityLabel } from '@/i18n';
+import { useActiveLocale } from '@/state/useTaskStore';
 
 interface Props {
   priority: Priority;
 }
-
-const PRIORITY_LABELS: Record<Priority, string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low'
-};
 
 const PRIORITY_STYLES: Record<Priority, { backgroundColor: string; color: string }> = {
   high: { backgroundColor: '#FEE2E2', color: '#B91C1C' },
@@ -20,11 +16,13 @@ const PRIORITY_STYLES: Record<Priority, { backgroundColor: string; color: string
 };
 
 function PriorityPillComponent({ priority }: Props) {
+  const locale = useActiveLocale();
   const { backgroundColor, color } = PRIORITY_STYLES[priority];
+  const label = useMemo(() => priorityLabel(priority), [priority, locale]);
 
   return (
-    <View style={[styles.container, { backgroundColor }]}> 
-      <Text style={[styles.text, { color }]}>{PRIORITY_LABELS[priority]}</Text>
+    <View style={[styles.container, { backgroundColor }]}>
+      <Text style={[styles.text, { color }]}>{label}</Text>
     </View>
   );
 }

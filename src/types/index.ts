@@ -32,8 +32,11 @@ export interface GoalWithTasks extends Goal {
   tasks: Task[];
 }
 
+export type LanguagePreference = 'system' | 'en' | 'zh';
+
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
+  language: LanguagePreference;
   notificationsEnabled: boolean;
   genAiEnabled: boolean;
   syncOnCellular: boolean;

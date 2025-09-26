@@ -11,6 +11,7 @@ TaskMind helps you turn big goals into daily wins. Simply set your goal, and Gen
 Install [pnpm](https://pnpm.io/) if it is not already available on your machine, then run:
 ```bash
 pnpm install
-pnpm start
+pnpm run ios
 ```
 Launch the Expo project on an iOS simulator or device signed in to iCloud to explore the experience.
+

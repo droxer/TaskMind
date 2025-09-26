@@ -1,18 +1,23 @@
 import { useMemo } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/EmptyState';
 import { PriorityPill } from '@/components/PriorityPill';
-import { useGoals, useInboxTasks } from '@/state/useTaskStore';
+import { useGoals, useInboxTasks, useActiveLocale } from '@/state/useTaskStore';
 import { Task } from '@/types';
 import { formatDate } from '@/utils/date';
+import { t } from '@/i18n';
 
 interface Section {
   title: string;
   data: Task[];
 }
 
+const NO_DUE_DATE_KEY = 'no-due-date';
+
 export default function CalendarScreen() {
+  const locale = useActiveLocale();
   const goals = useGoals();
   const inboxTasks = useInboxTasks();
 
@@ -24,7 +29,9 @@ export default function CalendarScreen() {
 
     const grouped = new Map<string, Task[]>();
     allTasks.forEach((task) => {
-      const key = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : 'No due date';
+      const key = task.dueDate
+        ? new Date(task.dueDate).toISOString().split('T')[0]
+        : NO_DUE_DATE_KEY;
       if (!grouped.has(key)) {
         grouped.set(key, []);
       }
@@ -41,41 +48,56 @@ export default function CalendarScreen() {
 
   if (sections.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <EmptyState
-          title="No tasks with due dates"
-          description="Set due dates to see your schedule view populate."
-        />
-      </View>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.emptyContainer}>
+          <EmptyState
+            title={t('calendar.empty.title')}
+            description={t('calendar.empty.description')}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SectionList
-      sections={sections}
-      keyExtractor={(item) => item.id}
-      stickySectionHeadersEnabled
-      contentContainerStyle={styles.content}
-      renderSectionHeader={({ section }) => (
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{formatDate(section.title)}</Text>
-          <Text style={styles.sectionMeta}>{section.data.length} tasks</Text>
-        </View>
-      )}
-      renderItem={({ item }) => (
-        <View style={styles.item}>
-          <View style={styles.itemText}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            {item.notes ? <Text style={styles.itemNotes}>{item.notes}</Text> : null}
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SectionList
+        extraData={locale}
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled
+        contentContainerStyle={styles.content}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {section.title === NO_DUE_DATE_KEY
+                ? t('common.noDueDate')
+                : formatDate(section.title, locale)}
+            </Text>
+            <Text style={styles.sectionMeta}>
+              {t('calendar.sectionMeta', { count: section.data.length })}
+            </Text>
           </View>
-          <PriorityPill priority={item.priority} />
-        </View>
-      )}
-    />
+        )}
+        renderItem={({ item }) => (
+          <View style={styles.item}>
+            <View style={styles.itemText}>
+              <Text style={styles.itemTitle}>{item.title}</Text>
+              {item.notes ? <Text style={styles.itemNotes}>{item.notes}</Text> : null}
+            </View>
+            <PriorityPill priority={item.priority} />
+          </View>
+        )}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFF'
+  },
   content: {
     backgroundColor: '#F8FAFF',
     paddingBottom: 24

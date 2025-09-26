@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Props {
   label: string;
@@ -8,8 +9,13 @@ interface Props {
 }
 
 export function Fab({ label, icon, onPress }: Props) {
+  const insets = useSafeAreaInsets();
+  const wrapperStyle = {
+    bottom: 24 + (insets.bottom > 0 ? insets.bottom - 8 : 0),
+    right: 24 + (insets.right > 0 ? insets.right : 0)
+  };
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, wrapperStyle]}>
       <Pressable onPress={onPress} style={styles.button}>
         {icon}
         <Text style={styles.label}>{label}</Text>

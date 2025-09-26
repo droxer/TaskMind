@@ -3,7 +3,9 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { Priority, Task } from '@/types';
+import { t, PRIORITY_LABEL_KEYS } from '@/i18n';
 import { formatDate } from '@/utils/date';
+import { useActiveLocale } from '@/state/useTaskStore';
 
 interface Props {
   initialTask?: Partial<Task>;
@@ -11,7 +13,10 @@ interface Props {
   submitLabel?: string;
 }
 
-export function TaskForm({ initialTask, onSubmit, submitLabel = 'Save Task' }: Props) {
+const PRIORITY_OPTIONS: Priority[] = ['low', 'medium', 'high'];
+
+export function TaskForm({ initialTask, onSubmit, submitLabel = t('taskForm.submit') }: Props) {
+  const locale = useActiveLocale();
   const [title, setTitle] = useState(initialTask?.title ?? '');
   const [notes, setNotes] = useState(initialTask?.notes ?? '');
   const [priority, setPriority] = useState<Priority>(initialTask?.priority ?? 'medium');
@@ -41,19 +46,19 @@ export function TaskForm({ initialTask, onSubmit, submitLabel = 'Save Task' }: P
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.field}>
-        <Text style={styles.label}>Title</Text>
+        <Text style={styles.label}>{t('taskForm.titleLabel')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="What needs to get done?"
+          placeholder={t('taskForm.titlePlaceholder')}
           value={title}
           onChangeText={setTitle}
         />
       </View>
       <View style={styles.field}>
-        <Text style={styles.label}>Notes</Text>
+        <Text style={styles.label}>{t('taskForm.notesLabel')}</Text>
         <TextInput
           style={[styles.input, styles.multiline]}
-          placeholder="Optional context"
+          placeholder={t('taskForm.notesPlaceholder')}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -61,9 +66,9 @@ export function TaskForm({ initialTask, onSubmit, submitLabel = 'Save Task' }: P
         />
       </View>
       <View style={styles.field}>
-        <Text style={styles.label}>Priority</Text>
+        <Text style={styles.label}>{t('taskForm.priorityLabel')}</Text>
         <View style={styles.priorityRow}>
-          {(['low', 'medium', 'high'] as Priority[]).map((option) => {
+          {PRIORITY_OPTIONS.map((option) => {
             const isActive = option === priority;
             return (
               <Pressable
@@ -72,7 +77,7 @@ export function TaskForm({ initialTask, onSubmit, submitLabel = 'Save Task' }: P
                 style={[styles.priorityChip, isActive && styles.priorityChipActive]}
               >
                 <Text style={[styles.priorityLabel, isActive && styles.priorityLabelActive]}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                  {t(PRIORITY_LABEL_KEYS[option])}
                 </Text>
               </Pressable>
             );
@@ -80,10 +85,10 @@ export function TaskForm({ initialTask, onSubmit, submitLabel = 'Save Task' }: P
         </View>
       </View>
       <View style={styles.field}>
-        <Text style={styles.label}>Due date</Text>
+        <Text style={styles.label}>{t('taskForm.dueDateLabel')}</Text>
         <Pressable style={styles.duePicker} onPress={() => setShowPicker(true)}>
-          <Text style={styles.dueLabel}>{formatDate(dueDate)}</Text>
-          <Text style={styles.dueChange}>Pick</Text>
+          <Text style={styles.dueLabel}>{formatDate(dueDate, locale)}</Text>
+          <Text style={styles.dueChange}>{t('common.pick')}</Text>
         </Pressable>
         {showPicker ? (
           <DateTimePicker

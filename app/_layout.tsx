@@ -6,20 +6,27 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppProviders } from '@/providers/AppProviders';
-import { useHydratedStore } from '@/state/useTaskStore';
+import { useHydratedStore, useActiveLocale, usePreferences } from '@/state/useTaskStore';
+import { applyLocalePreference, t } from '@/i18n';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const preferences = usePreferences();
+  const locale = useActiveLocale();
   useHydratedStore();
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    applyLocalePreference(preferences.language);
+  }, [preferences.language]);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} accessibilityLanguage={locale}>
       <AppProviders>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
@@ -27,14 +34,14 @@ export default function RootLayout() {
             <Stack.Screen
               name="goal-wizard"
               options={{
-                title: 'Goal Wizard',
+                title: t('goalWizard.title'),
                 presentation: 'modal'
               }}
             />
             <Stack.Screen
               name="task-editor"
               options={{
-                title: 'Task Editor',
+                title: t('taskEditor.title'),
                 presentation: 'modal'
               }}
             />

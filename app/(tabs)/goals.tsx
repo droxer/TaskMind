@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LayoutAnimation, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, UIManager, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,7 +8,9 @@ import { GoalCard } from '@/components/GoalCard';
 import { EmptyState } from '@/components/EmptyState';
 import { TaskCard } from '@/components/TaskCard';
 import { Fab } from '@/components/Fab';
-import { useTaskStore, useGoals } from '@/state/useTaskStore';
+import { useTaskStore, useGoals, useActiveLocale } from '@/state/useTaskStore';
+import { t } from '@/i18n';
+import type { Task } from '@/types';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -16,6 +19,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 export default function GoalsScreen() {
   const router = useRouter();
   const goals = useGoals();
+  const locale = useActiveLocale();
   const toggleTaskStatus = useTaskStore((state) => state.toggleTaskStatus);
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null);
 
@@ -26,27 +30,35 @@ export default function GoalsScreen() {
 
   if (goals.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <EmptyState
-          title="No goals yet"
-          description="Use the goal wizard to break big objectives into meaningful steps."
-        />
-        <Fab
-          label="New goal"
-          icon={<Ionicons name="sparkles" size={20} color="#FFFFFF" />}
-          onPress={() => router.push('/goal-wizard')}
-        />
-      </View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={['top']}
+        accessibilityLanguage={locale}
+      >
+        <View style={styles.emptyContainer}>
+          <EmptyState
+            title={t('goals.empty.title')}
+            description={t('goals.empty.description')}
+          />
+          <Fab
+            label={t('home.fab.newGoal')}
+            icon={<Ionicons name="sparkles" size={20} color="#FFFFFF" />}
+            onPress={() => router.push('/goal-wizard')}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top']}
+      accessibilityLanguage={locale}
+    >
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.heading}>Goals</Text>
-        <Text style={styles.description}>
-          Review active plans, tweak due dates, or add manual tasks to any goal.
-        </Text>
+        <Text style={styles.heading}>{t('goals.title')}</Text>
+        <Text style={styles.description}>{t('goals.subtitle')}</Text>
 
         {goals.map((goal) => {
           const isExpanded = expandedGoalId === goal.id;
@@ -58,7 +70,7 @@ export default function GoalsScreen() {
               {isExpanded ? (
                 <View style={styles.taskList}>
                   <View style={styles.taskListHeader}>
-                    <Text style={styles.taskListTitle}>Tasks</Text>
+                    <Text style={styles.taskListTitle}>{t('goals.taskList.title')}</Text>
                     <Text
                       style={styles.addTask}
                       onPress={() =>
@@ -68,15 +80,15 @@ export default function GoalsScreen() {
                         })
                       }
                     >
-                      + Add task
+                      {t('goals.taskList.add')}
                     </Text>
                   </View>
                   {goal.tasks.length === 0 ? (
-                    <Text style={styles.noTasks}>No tasks yet. Generate with AI or add manually.</Text>
+                    <Text style={styles.noTasks}>{t('goals.taskList.empty')}</Text>
                   ) : (
-                    goal.tasks.map((task) => (
+                    goal.tasks.map((task: Task) => (
                       <View key={task.id} style={styles.taskWrapper}>
-                        <TaskCard task={task} onToggleStatus={toggleTaskStatus} />
+                        <TaskCard task={task} onToggleStatus={(item) => toggleTaskStatus(item.id)} />
                       </View>
                     ))
                   )}
@@ -87,15 +99,19 @@ export default function GoalsScreen() {
         })}
       </ScrollView>
       <Fab
-        label="New goal"
+        label={t('home.fab.newGoal')}
         icon={<Ionicons name="sparkles" size={20} color="#FFFFFF" />}
         onPress={() => router.push('/goal-wizard')}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFF'
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFF'

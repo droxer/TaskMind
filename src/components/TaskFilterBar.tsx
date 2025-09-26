@@ -1,13 +1,15 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Priority } from '@/types';
+import { t, PRIORITY_LABEL_KEYS, type TranslationKey } from '@/i18n';
+import { useActiveLocale } from '@/state/useTaskStore';
 
-const FILTERS: Array<{ key: Priority | 'all'; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'high', label: 'High' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'low', label: 'Low' }
+const FILTERS: Array<{ key: Priority | 'all'; labelKey: TranslationKey }> = [
+  { key: 'all', labelKey: 'filters.all' },
+  { key: 'high', labelKey: PRIORITY_LABEL_KEYS.high },
+  { key: 'medium', labelKey: PRIORITY_LABEL_KEYS.medium },
+  { key: 'low', labelKey: PRIORITY_LABEL_KEYS.low }
 ];
 
 interface Props {
@@ -16,9 +18,11 @@ interface Props {
 }
 
 function TaskFilterBarComponent({ activeFilter, onChange }: Props) {
+  const locale = useActiveLocale();
+  const filters = useMemo(() => FILTERS.map((filter) => ({ ...filter })), [locale]);
   return (
     <View style={styles.container}>
-      {FILTERS.map((filter) => {
+      {filters.map((filter) => {
         const isActive = activeFilter === filter.key;
         return (
           <Pressable
@@ -26,7 +30,9 @@ function TaskFilterBarComponent({ activeFilter, onChange }: Props) {
             style={[styles.chip, isActive && styles.activeChip]}
             onPress={() => onChange(filter.key)}
           >
-            <Text style={[styles.chipLabel, isActive && styles.activeChipLabel]}>{filter.label}</Text>
+            <Text style={[styles.chipLabel, isActive && styles.activeChipLabel]}>
+              {t(filter.labelKey)}
+            </Text>
           </Pressable>
         );
       })}

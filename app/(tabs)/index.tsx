@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -7,12 +8,14 @@ import { EmptyState } from '@/components/EmptyState';
 import { Fab } from '@/components/Fab';
 import { TaskFilterBar } from '@/components/TaskFilterBar';
 import { TaskList } from '@/components/TaskList';
-import { useInboxTasks } from '@/state/useTaskStore';
+import { useInboxTasks, useActiveLocale } from '@/state/useTaskStore';
 import { Priority } from '@/types';
+import { t } from '@/i18n';
 
 export default function HomeScreen() {
   const router = useRouter();
   const tasks = useInboxTasks();
+  const locale = useActiveLocale();
   const [filter, setFilter] = useState<Priority | 'all'>('all');
 
   const filteredTasks = useMemo(() => {
@@ -26,73 +29,83 @@ export default function HomeScreen() {
   const total = tasks.length;
 
   return (
-    <View style={styles.container}>
-      <TaskList
-        tasks={filteredTasks}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <View style={styles.headerSection}>
-            <View style={styles.header}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top']}
+      accessibilityLanguage={locale}
+    >
+      <View style={styles.container}>
+        <TaskList
+          tasks={filteredTasks}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <View style={styles.headerSection}>
+              <View style={styles.header}>
+                <View>
+                  <Text style={styles.title}>{t('home.title')}</Text>
+                  <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
+                </View>
+                <View style={styles.progressBubble}>
+                  <Text style={styles.progressValue}>
+                    {total === 0 ? 0 : Math.round((completed / total) * 100)}%
+                  </Text>
+                  <Text style={styles.progressLabel}>{t('home.doneLabel')}</Text>
+                </View>
+              </View>
+
+              <View style={styles.quickActions}>
+                <View style={styles.actionCard}>
+                  <Ionicons name="sparkles" size={20} color="#4338CA" />
+                  <Text style={styles.actionTitle}>{t('home.goalWizard.title')}</Text>
+                  <Text style={styles.actionDescription}>{t('home.goalWizard.description')}</Text>
+                  <Text style={styles.actionLink} onPress={() => router.push('/goal-wizard')}>
+                    {t('home.goalWizard.cta')}
+                  </Text>
+                </View>
+                <View style={styles.actionCard}>
+                  <Ionicons name="add-circle" size={20} color="#0EA5E9" />
+                  <Text style={styles.actionTitle}>{t('home.quickTask.title')}</Text>
+                  <Text style={styles.actionDescription}>{t('home.quickTask.description')}</Text>
+                  <Text style={styles.actionLink} onPress={() => router.push('/task-editor')}>
+                    {t('home.quickTask.cta')}
+                  </Text>
+                </View>
+              </View>
+
               <View>
-                <Text style={styles.title}>Today&apos;s Focus</Text>
-                <Text style={styles.subtitle}>Stay in control of your priorities</Text>
-              </View>
-              <View style={styles.progressBubble}>
-                <Text style={styles.progressValue}>
-                  {total === 0 ? 0 : Math.round((completed / total) * 100)}%
-                </Text>
-                <Text style={styles.progressLabel}>Done</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('home.section.inboxTitle')}</Text>
+                  <Text style={styles.sectionMeta}>{t('home.section.inboxMeta', { count: total })}</Text>
+                </View>
+                <TaskFilterBar activeFilter={filter} onChange={setFilter} />
               </View>
             </View>
-
-            <View style={styles.quickActions}>
-              <View style={styles.actionCard}>
-                <Ionicons name="sparkles" size={20} color="#4338CA" />
-                <Text style={styles.actionTitle}>Goal wizard</Text>
-                <Text style={styles.actionDescription}>Describe your goal and let GenAI plan the steps.</Text>
-                <Text style={styles.actionLink} onPress={() => router.push('/goal-wizard')}>
-                  Start breakdown →
-                </Text>
-              </View>
-              <View style={styles.actionCard}>
-                <Ionicons name="add-circle" size={20} color="#0EA5E9" />
-                <Text style={styles.actionTitle}>Quick task</Text>
-                <Text style={styles.actionDescription}>Capture a task manually with priority and due date.</Text>
-                <Text style={styles.actionLink} onPress={() => router.push('/task-editor')}>
-                  Add task →
-                </Text>
-              </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <EmptyState
+                title={t('home.empty.title')}
+                description={t('home.empty.description')}
+              />
             </View>
+          }
+        />
 
-            <View>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Inbox tasks</Text>
-                <Text style={styles.sectionMeta}>{total} total</Text>
-              </View>
-              <TaskFilterBar activeFilter={filter} onChange={setFilter} />
-            </View>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <EmptyState
-              title="Nothing scheduled yet"
-              description="Add a quick task or run the goal wizard to get started."
-            />
-          </View>
-        }
-      />
-
-      <Fab
-        label="New goal"
-        icon={<Ionicons name="sparkles" size={20} color="#FFFFFF" />}
-        onPress={() => router.push('/goal-wizard')}
-      />
-    </View>
+        <Fab
+          label={t('home.fab.newGoal')}
+          icon={<Ionicons name="sparkles" size={20} color="#FFFFFF" />}
+          onPress={() => router.push('/goal-wizard')}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F8FAFF'
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8FAFF'

@@ -4,7 +4,16 @@ import { immer } from 'zustand/middleware/immer';
 
 import { saveSnapshot, loadSnapshot, TaskMindSnapshot } from '@/services/storage';
 import { pushSnapshot } from '@/services/syncService';
-import { Goal, GoalWithTasks, Priority, SyncMetadata, Task, TaskStatus, UserPreferences } from '@/types';
+import {
+  Goal,
+  GoalWithTasks,
+  Priority,
+  SyncMetadata,
+  Task,
+  TaskStatus,
+  UserPreferences
+} from '@/types';
+import { applyLocalePreference, coerceLocalePreference, type SupportedLocale } from '@/i18n';
 import { createId } from '@/utils/id';
 
 interface CreateGoalInput {
@@ -33,6 +42,7 @@ interface TaskMindState {
   inboxTasks: Task[];
   preferences: UserPreferences;
   syncMetadata: SyncMetadata;
+  activeLocale: SupportedLocale;
   hydrate: () => Promise<void>;
   createGoal: (input: CreateGoalInput) => GoalWithTasks;
   updateGoal: (id: string, updates: UpdateGoalInput) => void;
@@ -48,10 +58,13 @@ interface TaskMindState {
 
 const defaultPreferences: UserPreferences = {
   theme: 'system',
+  language: 'system',
   notificationsEnabled: true,
   genAiEnabled: true,
   syncOnCellular: false
 };
+
+const defaultLocale = applyLocalePreference(defaultPreferences.language);
 
 const defaultSyncMetadata: SyncMetadata = {
   syncStatus: 'pending'
@@ -61,19 +74,28 @@ export const useTaskStore = create<TaskMindState>()(
   immer((set, get) => ({
     goals: [],
     inboxTasks: [],
-    preferences: defaultPreferences,
-    syncMetadata: defaultSyncMetadata,
+    preferences: { ...defaultPreferences },
+    syncMetadata: { ...defaultSyncMetadata },
+    activeLocale: defaultLocale,
 
     hydrate: async () => {
       const snapshot = await loadSnapshot();
       if (!snapshot) {
         return;
       }
+      const storedPreferences = snapshot.preferences ?? defaultPreferences;
+      const nextPreferences: UserPreferences = {
+        ...defaultPreferences,
+        ...storedPreferences,
+        language: coerceLocalePreference(storedPreferences.language)
+      };
+      const activeLocale = applyLocalePreference(nextPreferences.language);
       set((state) => {
         state.goals = snapshot.goals;
         state.inboxTasks = snapshot.inboxTasks;
-        state.preferences = snapshot.preferences;
+        state.preferences = nextPreferences;
         state.syncMetadata = { ...defaultSyncMetadata, syncStatus: 'pending' };
+        state.activeLocale = activeLocale;
       });
     },
 
@@ -118,7 +140,7 @@ export const useTaskStore = create<TaskMindState>()(
     updateGoal: (id, updates) => {
       const now = new Date().toISOString();
       set((state) => {
-        const goal = state.goals.find((item) => item.id === id);
+        const goal = state.goals.find((item: GoalWithTasks) => item.id === id);
         if (!goal) {
           return;
         }
@@ -130,8 +152,8 @@ export const useTaskStore = create<TaskMindState>()(
 
     deleteGoal: (id) => {
       set((state) => {
-        state.goals = state.goals.filter((goal) => goal.id !== id);
-        state.inboxTasks.forEach((task) => {
+        state.goals = state.goals.filter((goal: GoalWithTasks) => goal.id !== id);
+        state.inboxTasks.forEach((task: Task) => {
           if (task.goalId === id) {
             task.goalId = undefined;
           }
@@ -143,7 +165,7 @@ export const useTaskStore = create<TaskMindState>()(
 
     attachTasksToGoal: (goalId, tasks) => {
       set((state) => {
-        const goal = state.goals.find((item) => item.id === goalId);
+        const goal = state.goals.find((item: GoalWithTasks) => item.id === goalId);
         if (!goal) {
           return;
         }
@@ -172,7 +194,7 @@ export const useTaskStore = create<TaskMindState>()(
 
       set((state) => {
         if (input.goalId) {
-          const goal = state.goals.find((item) => item.id === input.goalId);
+          const goal = state.goals.find((item: GoalWithTasks) => item.id === input.goalId);
           if (goal) {
             goal.tasks.unshift(task);
             goal.updatedAt = now;
@@ -193,7 +215,7 @@ export const useTaskStore = create<TaskMindState>()(
       const now = new Date().toISOString();
       set((state) => {
         const updateWithin = (collection: Task[]) => {
-          const task = collection.find((item) => item.id === id);
+          const task = collection.find((item: Task) => item.id === id);
           if (task) {
             Object.assign(task, updates, { updatedAt: now });
             return true;
@@ -201,7 +223,7 @@ export const useTaskStore = create<TaskMindState>()(
           return false;
         };
 
-        const goal = state.goals.find((g) => g.tasks.some((task) => task.id === id));
+        const goal = state.goals.find((g: GoalWithTasks) => g.tasks.some((task) => task.id === id));
         if (goal && updateWithin(goal.tasks)) {
           goal.updatedAt = now;
         } else if (!updateWithin(state.inboxTasks)) {
@@ -217,7 +239,7 @@ export const useTaskStore = create<TaskMindState>()(
     toggleTaskStatus: (id) => {
       set((state) => {
         const toggleInCollection = (collection: Task[]) => {
-          const task = collection.find((item) => item.id === id);
+          const task = collection.find((item: Task) => item.id === id);
           if (!task) {
             return false;
           }
@@ -227,7 +249,7 @@ export const useTaskStore = create<TaskMindState>()(
           return true;
         };
 
-        const goal = state.goals.find((g) => g.tasks.some((task) => task.id === id));
+        const goal = state.goals.find((g: GoalWithTasks) => g.tasks.some((task) => task.id === id));
         if (goal && toggleInCollection(goal.tasks)) {
           goal.updatedAt = new Date().toISOString();
         } else if (!toggleInCollection(state.inboxTasks)) {
@@ -241,10 +263,10 @@ export const useTaskStore = create<TaskMindState>()(
 
     deleteTask: (id) => {
       set((state) => {
-        state.inboxTasks = state.inboxTasks.filter((task) => task.id !== id);
-        state.goals = state.goals.map((goal) => ({
+        state.inboxTasks = state.inboxTasks.filter((task: Task) => task.id !== id);
+        state.goals = state.goals.map((goal: GoalWithTasks) => ({
           ...goal,
-          tasks: goal.tasks.filter((task) => task.id !== id)
+          tasks: goal.tasks.filter((task: Task) => task.id !== id)
         }));
         state.syncMetadata.syncStatus = 'pending';
       });
@@ -253,8 +275,14 @@ export const useTaskStore = create<TaskMindState>()(
 
     setPreferences: (updates) => {
       set((state) => {
-        state.preferences = { ...state.preferences, ...updates };
+        const nextPreferences: UserPreferences = {
+          ...state.preferences,
+          ...updates
+        };
+        nextPreferences.language = coerceLocalePreference(nextPreferences.language);
+        state.preferences = nextPreferences;
         state.syncMetadata.syncStatus = 'pending';
+        state.activeLocale = applyLocalePreference(nextPreferences.language);
       });
       persistSnapshot();
     },
@@ -309,6 +337,10 @@ export function usePreferences() {
 
 export function useSyncMetadata() {
   return useTaskStore((state) => state.syncMetadata);
+}
+
+export function useActiveLocale() {
+  return useTaskStore((state) => state.activeLocale);
 }
 
 export function useHydratedStore() {

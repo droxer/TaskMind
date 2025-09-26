@@ -2,9 +2,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { TaskForm } from '@/components/TaskForm';
-import { useTaskStore } from '@/state/useTaskStore';
+import { useTaskStore, useActiveLocale } from '@/state/useTaskStore';
+import { t } from '@/i18n';
 
 export default function TaskEditorScreen() {
+  const locale = useActiveLocale();
   const router = useRouter();
   const { goalId, goalTitle } = useLocalSearchParams<{
     goalId?: string;
@@ -13,10 +15,10 @@ export default function TaskEditorScreen() {
   const createTask = useTaskStore((state) => state.createTask);
 
   return (
-    <View style={styles.container}>
-      {goalTitle ? <Text style={styles.context}>Adding to {goalTitle}</Text> : null}
+    <View style={styles.container} accessibilityLanguage={locale}>
+      {goalTitle ? <Text style={styles.context}>{t('taskEditor.context', { goalTitle })}</Text> : null}
       <TaskForm
-        submitLabel="Save"
+        submitLabel={t('taskEditor.submit')}
         onSubmit={(task) => {
           if (!task.title) {
             return;

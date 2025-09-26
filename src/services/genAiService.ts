@@ -1,28 +1,33 @@
 import { GenAiGoalBreakdownResponse } from '@/types';
+import { t } from '@/i18n';
 
 interface GoalBreakdownInput {
   goal: string;
   targetDate?: string;
   context?: string;
+  signal?: AbortSignal;
 }
 
-const FALLBACK_RESPONSE: GenAiGoalBreakdownResponse = {
-  summary: 'Break down goals into actionable steps to stay on track.',
-  tasks: [
-    { title: 'Clarify success criteria', priority: 'high' },
-    { title: 'Identify potential blockers', priority: 'medium' },
-    { title: 'Schedule review milestones', priority: 'medium' }
-  ]
-};
+function getFallbackResponse(): GenAiGoalBreakdownResponse {
+  return {
+    summary: t('genAi.fallback.summary'),
+    tasks: [
+      { title: t('genAi.fallback.taskClarify'), priority: 'high' },
+      { title: t('genAi.fallback.taskBlockers'), priority: 'medium' },
+      { title: t('genAi.fallback.taskMilestones'), priority: 'medium' }
+    ]
+  };
+}
 
 export async function requestGoalBreakdown(
-  input: GoalBreakdownInput,
-  signal?: AbortSignal
+  input: GoalBreakdownInput
 ): Promise<GenAiGoalBreakdownResponse> {
   const endpoint = process.env.EXPO_PUBLIC_GENAI_ENDPOINT;
   if (!endpoint) {
-    return FALLBACK_RESPONSE;
+    return getFallbackResponse();
   }
+
+  const { signal, ...payload } = input;
 
   try {
     const response = await fetch(`${endpoint}/goal-breakdown`, {
@@ -30,11 +35,7 @@ export async function requestGoalBreakdown(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        goal: input.goal,
-        targetDate: input.targetDate,
-        context: input.context
-      }),
+      body: JSON.stringify(payload),
       signal
     });
 
@@ -42,13 +43,13 @@ export async function requestGoalBreakdown(
       throw new Error(`GenAI endpoint failed: ${response.status}`);
     }
 
-    const payload = (await response.json()) as GenAiGoalBreakdownResponse;
-    if (!payload?.tasks?.length) {
+    const data = (await response.json()) as GenAiGoalBreakdownResponse;
+    if (!data?.tasks?.length) {
       throw new Error('Malformed GenAI response');
     }
-    return payload;
+    return data;
   } catch (error) {
     console.warn('GenAI breakdown failed – using fallback', error);
-    return FALLBACK_RESPONSE;
+    return getFallbackResponse();
   }
 }

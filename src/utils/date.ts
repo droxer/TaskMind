@@ -1,6 +1,8 @@
-export function formatDate(date: string | undefined): string {
+import { t, currentLocale } from '@/i18n';
+
+export function formatDate(date: string | undefined, locale: string = currentLocale()): string {
   if (!date) {
-    return 'No due date';
+    return t('common.noDueDate');
   }
   const options: Intl.DateTimeFormatOptions = {
     month: 'short',
@@ -9,10 +11,10 @@ export function formatDate(date: string | undefined): string {
 
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) {
-    return 'No due date';
+    return t('common.noDueDate');
   }
 
-  return parsed.toLocaleDateString(undefined, options);
+  return parsed.toLocaleDateString(locale, options);
 }
 
 export function daysUntil(date: string | undefined): number | null {

@@ -1,6 +1,7 @@
 import { FlatList, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { TaskCard } from '@/components/TaskCard';
+import { useActiveLocale } from '@/state/useTaskStore';
 import { Task } from '@/types';
 
 interface Props {
@@ -20,9 +21,12 @@ export function TaskList({
   ListHeaderComponent,
   contentContainerStyle
 }: Props) {
+  const locale = useActiveLocale();
+
   return (
     <FlatList
       data={tasks}
+      extraData={locale}
       keyExtractor={(item) => item.id}
       contentContainerStyle={StyleSheet.flatten([styles.content, contentContainerStyle])}
       ItemSeparatorComponent={() => <View style={styles.separator} />}

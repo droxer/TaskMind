@@ -1,8 +1,10 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { GoalWithTasks } from '@/types';
+import { GoalWithTasks, Task } from '@/types';
 import { formatDate } from '@/utils/date';
+import { t } from '@/i18n';
+import { useActiveLocale } from '@/state/useTaskStore';
 
 interface Props {
   goal: GoalWithTasks;
@@ -10,8 +12,9 @@ interface Props {
 }
 
 function GoalCardComponent({ goal, onPress }: Props) {
+  const locale = useActiveLocale();
   const totalTasks = goal.tasks.length;
-  const completedTasks = goal.tasks.filter((task) => task.status === 'done').length;
+  const completedTasks = goal.tasks.filter((task: Task) => task.status === 'done').length;
   const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return (
@@ -22,8 +25,10 @@ function GoalCardComponent({ goal, onPress }: Props) {
       </View>
       {goal.description ? <Text style={styles.description}>{goal.description}</Text> : null}
       <View style={styles.footer}>
-        <Text style={styles.meta}>Tasks · {completedTasks}/{totalTasks}</Text>
-        <Text style={styles.meta}>{formatDate(goal.targetDate)}</Text>
+        <Text style={styles.meta}>
+          {t('goalCard.progress', { completed: completedTasks, total: totalTasks })}
+        </Text>
+        <Text style={styles.meta}>{formatDate(goal.targetDate, locale)}</Text>
       </View>
       {goal.aiSummary ? <Text style={styles.aiSummary}>{goal.aiSummary}</Text> : null}
     </Pressable>
