@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,54 +27,61 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Today&apos;s Focus</Text>
-            <Text style={styles.subtitle}>Stay in control of your priorities</Text>
-          </View>
-          <View style={styles.progressBubble}>
-            <Text style={styles.progressValue}>{total === 0 ? 0 : Math.round((completed / total) * 100)}%</Text>
-            <Text style={styles.progressLabel}>Done</Text>
-          </View>
-        </View>
+      <TaskList
+        tasks={filteredTasks}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.headerSection}>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.title}>Today&apos;s Focus</Text>
+                <Text style={styles.subtitle}>Stay in control of your priorities</Text>
+              </View>
+              <View style={styles.progressBubble}>
+                <Text style={styles.progressValue}>
+                  {total === 0 ? 0 : Math.round((completed / total) * 100)}%
+                </Text>
+                <Text style={styles.progressLabel}>Done</Text>
+              </View>
+            </View>
 
-        <View style={styles.quickActions}>
-          <View style={styles.actionCard}>
-            <Ionicons name="sparkles" size={20} color="#4338CA" />
-            <Text style={styles.actionTitle}>Goal wizard</Text>
-            <Text style={styles.actionDescription}>Describe your goal and let GenAI plan the steps.</Text>
-            <Text style={styles.actionLink} onPress={() => router.push('/goal-wizard')}>
-              Start breakdown →
-            </Text>
-          </View>
-          <View style={styles.actionCard}>
-            <Ionicons name="add-circle" size={20} color="#0EA5E9" />
-            <Text style={styles.actionTitle}>Quick task</Text>
-            <Text style={styles.actionDescription}>Capture a task manually with priority and due date.</Text>
-            <Text style={styles.actionLink} onPress={() => router.push('/task-editor')}>
-              Add task →
-            </Text>
-          </View>
-        </View>
+            <View style={styles.quickActions}>
+              <View style={styles.actionCard}>
+                <Ionicons name="sparkles" size={20} color="#4338CA" />
+                <Text style={styles.actionTitle}>Goal wizard</Text>
+                <Text style={styles.actionDescription}>Describe your goal and let GenAI plan the steps.</Text>
+                <Text style={styles.actionLink} onPress={() => router.push('/goal-wizard')}>
+                  Start breakdown →
+                </Text>
+              </View>
+              <View style={styles.actionCard}>
+                <Ionicons name="add-circle" size={20} color="#0EA5E9" />
+                <Text style={styles.actionTitle}>Quick task</Text>
+                <Text style={styles.actionDescription}>Capture a task manually with priority and due date.</Text>
+                <Text style={styles.actionLink} onPress={() => router.push('/task-editor')}>
+                  Add task →
+                </Text>
+              </View>
+            </View>
 
-        <View>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Inbox tasks</Text>
-            <Text style={styles.sectionMeta}>{total} total</Text>
+            <View>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Inbox tasks</Text>
+                <Text style={styles.sectionMeta}>{total} total</Text>
+              </View>
+              <TaskFilterBar activeFilter={filter} onChange={setFilter} />
+            </View>
           </View>
-          <TaskFilterBar activeFilter={filter} onChange={setFilter} />
-          <TaskList
-            tasks={filteredTasks}
-            ListEmptyComponent={
-              <EmptyState
-                title="Nothing scheduled yet"
-                description="Add a quick task or run the goal wizard to get started."
-              />
-            }
-          />
-        </View>
-      </ScrollView>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <EmptyState
+              title="Nothing scheduled yet"
+              description="Add a quick task or run the goal wizard to get started."
+            />
+          </View>
+        }
+      />
 
       <Fab
         label="New goal"
@@ -90,9 +97,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFF'
   },
-  scrollContent: {
-    padding: 24,
+  listContent: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
     paddingBottom: 120,
+    gap: 24
+  },
+  headerSection: {
     gap: 24
   },
   header: {
@@ -167,5 +178,8 @@ const styles = StyleSheet.create({
   sectionMeta: {
     fontSize: 13,
     color: '#64748B'
+  },
+  emptyState: {
+    paddingVertical: 48
   }
 });
